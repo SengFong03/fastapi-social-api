@@ -1,15 +1,24 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from . import models
 from .database import engine
 from .routers import post, user, auth, vote
 from .config import settings
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 # Create the database tables
 # Commented out to use Alembic for migrations
 # models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# 1. 告诉 FastAPI：凡是找 /static 开头的，去 static 文件夹里拿
+# 这一步是为了让浏览器能下载到 CSS 和 JS
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 2. 告诉 FastAPI：HTML 文件都在 templates 文件夹里
+templates = Jinja2Templates(directory="templates")
 
 origins = ["*"]  # Allow all origins; adjust for production use
                  # e.g., ["https://yourdomain.com"] for specific domains
@@ -30,5 +39,13 @@ app.include_router(vote.router)
 
 
 @app.get("/")
-def root():
-    return {"message": "Welcome to my API!"}
+async def view_home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/login_page")
+async def view_login(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/register_page")
+async def view_register(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})

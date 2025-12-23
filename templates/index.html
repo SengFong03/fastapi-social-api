@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Home - FastForum</title>
+    <link href="/static/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="/static/css/sb-admin-2.min.css" rel="stylesheet">
+</head>
+
+<body id="page-top">
+
+    <div id="wrapper">
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+
+                    <h1 class="h3 mb-0 text-gray-800 ml-3 mr-3">FastForum</h1>
+
+                    <form
+                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
+                        <div class="input-group">
+                            <input type="text" id="searchInput" class="form-control bg-light border-0 small"
+                                placeholder="Search for posts..." aria-label="Search" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="button" id="btnSearch">
+                                    <i class="fas fa-search fa-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" id="btnLogout">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Logout</span>
+                                <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                            </a>
+                        </li>
+                    </ul>
+
+                </nav>
+                <div class="container-fluid">
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Create New Post</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="input-group">
+                                <input type="text" id="newTitle" class="form-control" placeholder="Title">
+                                <input type="text" id="newContent" class="form-control" placeholder="What's on your mind?">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="btnCreate">Post</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="post-container">
+                        <div class="text-center">Loading feed...</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem("token");
+        if (!token) window.location.href = "/login_page";
+
+        // === 1. 加载帖子 (支持搜索) ===
+        // 默认 searchKeyword 是空字符串
+        async function loadPosts(searchKeyword = "") {
+            try {
+                // 构建 URL：如果有搜索词，就拼上去
+                let url = "/posts/";
+                if (searchKeyword) {
+                    // ?search=xxx 是后端定义的查询参数
+                    url += `?search=${encodeURIComponent(searchKeyword)}`;
+                }
+
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                if (response.ok) {
+                    const dataList = await response.json();
+                    renderPosts(dataList);
+                } else {
+                    console.error("Failed to load posts.");
+                }
+            } catch (err) {
+                console.error("Network error:", err);
+            }
+        }
+
+        // === 2. 渲染页面 ===
+        function renderPosts(dataList) {
+            const container = document.getElementById("post-container");
+            container.innerHTML = "";
+
+            if (dataList.length === 0) {
+                container.innerHTML = "<p class='text-center text-gray-500'>No posts found.</p>";
+                return;
+            }
+
+            dataList.forEach(item => {
+                const post = item.Post;
+                const votes = item.votes;
+
+                // 处理作者显示 (如果没有 email 就显示 ID)
+                const authorName = post.owner && post.owner.email ? post.owner.email.split('@')[0] : `User ${post.owner_id}`;
+
+                const html = `
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">${post.title}</h6>
+                            <span class="small text-gray-500">Author: ${authorName}</span>
+                        </div>
+                        <div class="card-body">
+                            <p>${post.content}</p>
+                            <hr>
+                            <div class="d-flex align-items-center">
+                                <button onclick="votePost(${post.id})" class="btn btn-success btn-circle btn-sm mr-2">
+                                    <i class="fas fa-thumbs-up"></i>
+                                </button>
+                                <span class="font-weight-bold">${votes}</span>
+                                <span class="ml-auto small text-gray-500">${new Date(post.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        // === 3. 监听搜索按钮 ===
+        document.getElementById("btnSearch").addEventListener("click", function () {
+            // 拿到输入框里的字
+            const keyword = document.getElementById("searchInput").value;
+            // 重新加载帖子（带参数）
+            loadPosts(keyword);
+        });
+
+        // (可选) 监听搜索框的回车键
+        document.getElementById("searchInput").addEventListener("keypress", function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // 防止表单自动刷新
+                const keyword = document.getElementById("searchInput").value;
+                loadPosts(keyword);
+            }
+        });
+
+        // === 4. 发帖功能 ===
+        document.getElementById("btnCreate").addEventListener("click", async () => {
+            const title = document.getElementById("newTitle").value;
+            const content = document.getElementById("newContent").value;
+            if (!title || !content) { alert("Title and content cannot be empty."); return; }
+
+            const response = await fetch("/posts/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({ title, content, published: true })
+            });
+
+            if (response.ok) {
+                document.getElementById("newTitle").value = "";
+                document.getElementById("newContent").value = "";
+                loadPosts();
+            } else {
+                alert("Failed to create post.");
+            }
+        });
+
+        // === 5. 点赞功能 ===
+        async function votePost(postId) {
+            try {
+                const response = await fetch("/vote/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ post_id: postId, dir: 1 })
+                });
+
+                if (response.ok) {
+                    loadPosts();
+                } else if (response.status === 409) {
+                    // 如果已经点赞，则取消 (dir=0)
+                    await fetch("/vote/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                        body: JSON.stringify({ post_id: postId, dir: 0 })
+                    });
+                    loadPosts();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        // === 6. 退出登录 ===
+        document.getElementById("btnLogout").addEventListener("click", () => {
+            localStorage.removeItem("token");
+            window.location.href = "/login_page";
+        });
+
+        // 页面初始化：加载所有帖子
+        loadPosts();
+    </script>
+
+</body>
+
+</html>

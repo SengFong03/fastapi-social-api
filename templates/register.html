@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Register - FastForum</title>
+    <link href="/static/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="/static/css/sb-admin-2.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gradient-primary">
+    <div class="container">
+        <div class="card o-hidden border-0 shadow-lg my-5">
+            <div class="card-body p-0">
+                <div class="row">
+                    <div class="col-lg-5 d-none d-lg-block bg-register-image"></div>
+                    <div class="col-lg-7">
+                        <div class="p-5">
+                            <div class="text-center">
+                                <h1 class="h4 text-gray-900 mb-4">Create an Account!</h1>
+                            </div>
+                            <form class="user">
+                                <div class="form-group">
+                                    <input type="email" class="form-control form-control-user" id="emailInput"
+                                        placeholder="Email Address">
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-sm-6 mb-3 mb-sm-0">
+                                        <input type="password" class="form-control form-control-user" id="passwordInput"
+                                            placeholder="Password">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <input type="password" class="form-control form-control-user"
+                                            id="repeatPasswordInput" placeholder="Confirm Password">
+                                    </div>
+                                </div>
+
+                                <div id="msgContainer" class="text-center mb-3" style="min-height: 24px;"></div>
+
+                                <a id="btnRegister" href="#" class="btn btn-primary btn-user btn-block">
+                                    Register Account
+                                </a>
+                            </form>
+                            <hr>
+                            <div class="text-center">
+                                <a class="small" href="/login_page">Already have an account? Login!</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("btnRegister").addEventListener("click", async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById("emailInput").value;
+            const password = document.getElementById("passwordInput").value;
+            const repeatPassword = document.getElementById("repeatPasswordInput").value;
+
+            // 获取消息显示的 div
+            const msgDiv = document.getElementById("msgContainer");
+
+            // 每次点击先清空旧消息，并重置颜色
+            msgDiv.innerText = "";
+            msgDiv.className = "text-center mb-3";
+
+            // 1. 前端简单校验：两次密码是否一致
+            if (password !== repeatPassword) {
+                msgDiv.innerText = "Passwords do not match!";
+                msgDiv.classList.add("text-danger"); // 红色
+                return;
+            }
+
+            try {
+                // 2. 发送请求给后端
+                const response = await fetch("/users/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+
+                if (response.ok) {
+                    // === 注册成功 ===
+                    // 显示绿色文字，而不是弹窗
+                    msgDiv.innerText = "Registration successful! Redirecting to login...";
+                    msgDiv.classList.add("text-success"); // 绿色
+
+                    // 延迟 1.5 秒后跳转，让用户看清提示
+                    setTimeout(() => {
+                        window.location.href = "/login_page";
+                    }, 1500);
+
+                } else {
+                    // === 注册失败 ===
+                    // 显示后端返回的错误信息 (例如: Email already registered)
+                    const errorData = await response.json();
+                    msgDiv.innerText = errorData.detail || "Registration failed";
+                    msgDiv.classList.add("text-danger"); // 红色
+                }
+            } catch (err) {
+                console.error(err);
+                msgDiv.innerText = "Connection error. Please try again.";
+                msgDiv.classList.add("text-danger");
+            }
+        });
+    </script>
+</body>
+
+</html>
