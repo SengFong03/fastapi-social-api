@@ -50,7 +50,8 @@
                         <div class="card-body">
                             <div class="input-group">
                                 <input type="text" id="newTitle" class="form-control" placeholder="Title">
-                                <input type="text" id="newContent" class="form-control" placeholder="What's on your mind?">
+                                <input type="text" id="newContent" class="form-control"
+                                    placeholder="What's on your mind?">
                                 <div class="input-group-append">
                                     <button class="btn btn-primary" type="button" id="btnCreate">Post</button>
                                 </div>
@@ -131,6 +132,14 @@
                                 <span class="font-weight-bold">${votes}</span>
                                 <span class="ml-auto small text-gray-500">${new Date(post.created_at).toLocaleString()}</span>
                             </div>
+                            <div class="input-group">
+                                <input type="text" id="comment-input-${post.id}" class="form-control form-control-sm" placeholder="写下你的评论...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary btn-sm" type="button" onclick="submitComment(${post.id})">
+                                        <i class="fas fa-paper-plane"></i> 发送
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -210,6 +219,60 @@
             localStorage.removeItem("token");
             window.location.href = "/login_page";
         });
+
+        // === 7. 提交评论 ===
+        // 发送评论的函数
+        async function submitComment(postId) {
+            // 1. 获取对应帖子的输入框内容
+            const inputId = `comment-input-${postId}`;
+            const inputElement = document.getElementById(inputId);
+            const content = inputElement.value.trim(); // .trim() 去掉前后的空格
+
+            // 2. 简单检查
+            if (!content) {
+                alert("评论内容不能为空！");
+                return;
+            }
+
+            // 3. 获取 Token
+            const token = localStorage.getItem("token"); // 假设你存 Token 的 key 叫 'token'
+            if (!token) {
+                alert("请先登录再评论！");
+                window.location.href = "login.html"; // 如果没登录，跳去登录页
+                return;
+            }
+
+            try {
+                // 4. 发送请求给后端
+                // 这里的 URL 要改成你真实的后端地址，注意是 /comments/ 还是 /comments/{post_id}，取决于你的 Router 写法
+                // 假设你用的是 schemas 里的 post_id 放在 body 里：
+                const response = await fetch("http://127.0.0.1:8000/comments/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        content: content
+                    })
+                });
+
+                if (response.ok) {
+                    // 成功！
+                    alert("评论成功！🎉");
+                    inputElement.value = ""; // 清空输入框，体验更好
+                } else {
+                    // 失败
+                    const data = await response.json();
+                    alert("发送失败: " + (data.detail || "未知错误"));
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                alert("网络错误，请检查后端是否启动");
+            }
+        }
 
         // 页面初始化：加载所有帖子
         loadPosts();

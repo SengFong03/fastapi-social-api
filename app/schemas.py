@@ -53,3 +53,21 @@ class TokenData(BaseModel):
 class Vote(BaseModel):
     post_id: int
     dir: Literal[1, 0]  # 1 for upvote, 0 for removing vote
+
+class CommentBase(BaseModel):
+    content: str
+
+class CommentCreate(CommentBase):
+    post_id: int
+    pass
+
+class CommentResponse(CommentBase):
+    id: int
+    created_at: datetime
+    post_id: int
+    user_id: int
+    owner: UserResponse
+
+    model_config = {
+        "from_attributes": True     #orm_mode = True
+    }
