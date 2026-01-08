@@ -19,6 +19,7 @@ class Post(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     owner = relationship("User")
+    comments = relationship("Comment", back_populates="post")
 
 
 class User(Base):

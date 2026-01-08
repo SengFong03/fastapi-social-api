@@ -6,6 +6,7 @@ from .config import settings
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 
 # Create the database tables
 # Commented out to use Alembic for migrations
@@ -40,6 +41,10 @@ app.include_router(comment.router)
 
 
 @app.get("/")
+async def read_root():
+    return RedirectResponse(url="/login_page")
+
+@app.get("/home")
 async def view_home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 

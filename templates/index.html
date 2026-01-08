@@ -99,7 +99,7 @@
             }
         }
 
-        // === 2. 渲染页面 ===
+        // === 2. 渲染页面 (修改版) ===
         function renderPosts(dataList) {
             const container = document.getElementById("post-container");
             container.innerHTML = "";
@@ -110,11 +110,52 @@
             }
 
             dataList.forEach(item => {
-                const post = item.Post;
+                const post = item.Post; // 你的帖子详情
                 const votes = item.votes;
 
-                // 处理作者显示 (如果没有 email 就显示 ID)
+                // 处理作者显示
                 const authorName = post.owner && post.owner.email ? post.owner.email.split('@')[0] : `User ${post.owner_id}`;
+
+                // ----------------------------------------------------
+                // 👇👇👇 第一步：这里是新增的循环逻辑，用来生成评论 HTML 👇👇👇
+                // ----------------------------------------------------
+                let commentsHTML = '';
+
+                // 检查有没有 comments 字段，并且数组长度大于 0
+                if (post.comments && post.comments.length > 0) {
+                    // 加一个标题
+                    commentsHTML += `<h6 class="small font-weight-bold text-secondary mt-3 mb-2 ml-1">Comments (${post.comments.length})</h6>`;
+
+                    post.comments.forEach(comment => {
+                        // 格式化时间 (可选)
+                        const commentTime = new Date(comment.created_at).toLocaleString();
+
+                        // 拼接每一条评论的样式 (用灰色背景区分)
+                        commentsHTML += `
+                            <div class="p-2 mb-2 bg-gray-200 rounded border-left-primary" style="background-color: #f8f9fc; border-left: 4px solid #4e73df;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small font-weight-bold text-primary">${comment.owner.email.split('@')[0]}</span>
+                                    <span class="small text-gray-500" style="font-size: 0.75rem;">${commentTime}</span>
+                                </div>
+                                <div class="text-dark small mt-1">
+                                    ${comment.content}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // 把所有评论包在一个带滚动条的盒子里 (防止评论太多拉太长)
+                    commentsHTML = `
+                        <div class="mb-3" style="max-height: 300px; overflow-y: auto;">
+                            ${commentsHTML}
+                        </div>
+                    `;
+                } else {
+                    // 如果没有评论，留空或者显示提示
+                    commentsHTML = `<div class="mb-3 text-center small text-gray-500 py-2">No comments yet.</div>`;
+                }
+                // ----------------------------------------------------
+
 
                 const html = `
                     <div class="card shadow mb-4">
@@ -125,18 +166,20 @@
                         <div class="card-body">
                             <p>${post.content}</p>
                             <hr>
-                            <div class="d-flex align-items-center">
-                                <button onclick="votePost(${post.id})" class="btn btn-success btn-circle btn-sm mr-2">
+                            <div class="d-flex align-items-center mb-3"> <button onclick="votePost(${post.id})" class="btn btn-success btn-circle btn-sm mr-2">
                                     <i class="fas fa-thumbs-up"></i>
                                 </button>
                                 <span class="font-weight-bold">${votes}</span>
                                 <span class="ml-auto small text-gray-500">${new Date(post.created_at).toLocaleString()}</span>
                             </div>
+
+                            ${commentsHTML}
+                            
                             <div class="input-group">
-                                <input type="text" id="comment-input-${post.id}" class="form-control form-control-sm" placeholder="写下你的评论...">
+                                <input type="text" id="comment-input-${post.id}" class="form-control form-control-sm" placeholder="Write a comment...">
                                 <div class="input-group-append">
                                     <button class="btn btn-primary btn-sm" type="button" onclick="submitComment(${post.id})">
-                                        <i class="fas fa-paper-plane"></i> 发送
+                                        <i class="fas fa-paper-plane"></i> Post
                                     </button>
                                 </div>
                             </div>
