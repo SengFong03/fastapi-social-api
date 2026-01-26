@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # --- 后端 ---
+  api:
+    build: ./backend         # 去 backend 文件夹找 Dockerfile
+    # 👇 1. 加这行：如果崩溃了，自动重启 (让它自己爬起来再试)
+    restart: always
+    # 👇 2. 修改 command：先睡 10 秒，再干活
+    command: bash -c "sleep 10 && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app       # 代码热重载
+    env_file:
+      - ./backend/.env       # 读取后端的 .env
+    depends_on:
+      - db
+    environment:
+      - DATABASE_HOSTNAME=db
+      - DATABASE_PORT=5432
+      - DATABASE_PASSWORD=SengFong_1203
+      - DATABASE_NAME=fastapi
+      - DATABASE_USERNAME=postgres
+
+  # --- 数据库 ---
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: SengFong_1203
+      POSTGRES_DB: fastapi
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # --- 前端 ---
+  frontend:
+    build: ./frontend        # 去 frontend 文件夹找 Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules    # 避坑：使用容器内的依赖
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Windows 必须加
+
+volumes:
+  postgres_data:

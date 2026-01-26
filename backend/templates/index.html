@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Home - FastForum</title>
+    <link href="/static/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="/static/css/sb-admin-2.min.css" rel="stylesheet">
+</head>
+
+<body id="page-top">
+
+    <div id="wrapper">
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+
+                    <h1 class="h3 mb-0 text-gray-800 ml-3 mr-3">FastForum</h1>
+
+                    <form
+                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
+                        <div class="input-group">
+                            <input type="text" id="searchInput" class="form-control bg-light border-0 small"
+                                placeholder="Search for posts..." aria-label="Search" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="button" id="btnSearch">
+                                    <i class="fas fa-search fa-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" id="btnLogout">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Logout</span>
+                                <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                            </a>
+                        </li>
+                    </ul>
+
+                </nav>
+                <div class="container-fluid">
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Create New Post</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="input-group">
+                                <input type="text" id="newTitle" class="form-control" placeholder="Title">
+                                <textarea 
+                                    id="newContent" 
+                                    class="form-control"
+                                    rows="5"
+                                    placeholder="What's on your mind?"></textarea>
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="btnCreate">Post</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="post-container">
+                        <div class="text-center">Loading feed...</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem("token");
+        if (!token) window.location.href = "/login_page";
+
+        // === 1. 加载帖子 (支持搜索) ===
+        // 默认 searchKeyword 是空字符串
+        async function loadPosts(searchKeyword = "") {
+            try {
+                // 构建 URL：如果有搜索词，就拼上去
+                let url = "/posts/";
+                if (searchKeyword) {
+                    // ?search=xxx 是后端定义的查询参数
+                    url += `?search=${encodeURIComponent(searchKeyword)}`;
+                }
+
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                if (response.ok) {
+                    const dataList = await response.json();
+                    renderPosts(dataList);
+                } else {
+                    console.error("Failed to load posts.");
+                }
+            } catch (err) {
+                console.error("Network error:", err);
+            }
+        }
+
+        // === 2. 渲染页面 (修改版) ===
+        function renderPosts(dataList) {
+            const container = document.getElementById("post-container");
+            container.innerHTML = "";
+
+            if (dataList.length === 0) {
+                container.innerHTML = "<p class='text-center text-gray-500'>No posts found.</p>";
+                return;
+            }
+
+            dataList.forEach(item => {
+                const post = item.Post; // 你的帖子详情
+                const votes = item.votes;
+
+                // 处理作者显示
+                const authorName = post.owner && post.owner.email ? post.owner.email.split('@')[0] : `User ${post.owner_id}`;
+
+                // ----------------------------------------------------
+                // 👇👇👇 第一步：这里是新增的循环逻辑，用来生成评论 HTML 👇👇👇
+                // ----------------------------------------------------
+                let commentsHTML = '';
+
+                // 检查有没有 comments 字段，并且数组长度大于 0
+                if (post.comments && post.comments.length > 0) {
+                    // 加一个标题
+                    commentsHTML += `<h6 class="small font-weight-bold text-secondary mt-3 mb-2 ml-1">Comments (${post.comments.length})</h6>`;
+
+                    post.comments.forEach(comment => {
+                        // 格式化时间 (可选)
+                        const commentTime = new Date(comment.created_at).toLocaleString();
+
+                        // 拼接每一条评论的样式 (用灰色背景区分)
+                        commentsHTML += `
+                            <div class="p-2 mb-2 bg-gray-200 rounded border-left-primary" style="background-color: #f8f9fc; border-left: 4px solid #4e73df;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small font-weight-bold text-primary">${comment.owner.email.split('@')[0]}</span>
+                                    <span class="small text-gray-500" style="font-size: 0.75rem;">${commentTime}</span>
+                                </div>
+                                <div class="text-dark small mt-1">
+                                    ${comment.content}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // 把所有评论包在一个带滚动条的盒子里 (防止评论太多拉太长)
+                    commentsHTML = `
+                        <div class="mb-3" style="max-height: 300px; overflow-y: auto;">
+                            ${commentsHTML}
+                        </div>
+                    `;
+                } else {
+                    // 如果没有评论，留空或者显示提示
+                    commentsHTML = `<div class="mb-3 text-center small text-gray-500 py-2">No comments yet.</div>`;
+                }
+                // ----------------------------------------------------
+
+
+                const html = `
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">${post.title}</h6>
+                            <span class="small text-gray-500">Author: ${authorName}</span>
+                        </div>
+                        <div class="card-body">
+                            <p style="white-space: pre-wrap;">${post.content}</p>
+                            
+                            <div class="mb-3">
+                                <button class="btn btn-sm btn-outline-primary" onclick="getAiSummary(${post.id}, this)">
+                                    <i class="fas fa-magic"></i> AI Summary
+                                </button>
+                                <div id="summary-box-${post.id}" class="alert alert-success mt-2 small" style="display:none;"></div>
+                            </div>
+
+                            <hr>
+                            <div class="d-flex align-items-center mb-3"> <button onclick="votePost(${post.id})" class="btn btn-success btn-circle btn-sm mr-2">
+                                    <i class="fas fa-thumbs-up"></i>
+                                </button>
+                                <span class="font-weight-bold">${votes}</span>
+                                <span class="ml-auto small text-gray-500">${new Date(post.created_at).toLocaleString()}</span>
+                            </div>
+
+                            ${commentsHTML}
+                            
+                            <div class="input-group">
+                                <input type="text" id="comment-input-${post.id}" class="form-control form-control-sm" placeholder="Write a comment...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary btn-sm" type="button" onclick="submitComment(${post.id})">
+                                        <i class="fas fa-paper-plane"></i> Post
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        // === 3. 监听搜索按钮 ===
+        document.getElementById("btnSearch").addEventListener("click", function () {
+            // 拿到输入框里的字
+            const keyword = document.getElementById("searchInput").value;
+            // 重新加载帖子（带参数）
+            loadPosts(keyword);
+        });
+
+        // (可选) 监听搜索框的回车键
+        document.getElementById("searchInput").addEventListener("keypress", function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // 防止表单自动刷新
+                const keyword = document.getElementById("searchInput").value;
+                loadPosts(keyword);
+            }
+        });
+
+        // === 4. 发帖功能 ===
+        document.getElementById("btnCreate").addEventListener("click", async () => {
+            const title = document.getElementById("newTitle").value;
+            const content = document.getElementById("newContent").value;
+            if (!title || !content) { alert("Title and content cannot be empty."); return; }
+
+            const response = await fetch("/posts/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({ title, content, published: true })
+            });
+
+            if (response.ok) {
+                document.getElementById("newTitle").value = "";
+                document.getElementById("newContent").value = "";
+                loadPosts();
+            } else {
+                alert("Failed to create post.");
+            }
+        });
+
+        // === 5. 点赞功能 ===
+        async function votePost(postId) {
+            try {
+                const response = await fetch("/vote/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ post_id: postId, dir: 1 })
+                });
+
+                if (response.ok) {
+                    loadPosts();
+                } else if (response.status === 409) {
+                    // 如果已经点赞，则取消 (dir=0)
+                    await fetch("/vote/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                        body: JSON.stringify({ post_id: postId, dir: 0 })
+                    });
+                    loadPosts();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        // === 6. 退出登录 ===
+        document.getElementById("btnLogout").addEventListener("click", () => {
+            localStorage.removeItem("token");
+            window.location.href = "/login_page";
+        });
+
+        // === 7. 提交评论 ===
+        // 发送评论的函数
+        async function submitComment(postId) {
+            // 1. 获取对应帖子的输入框内容
+            const inputId = `comment-input-${postId}`;
+            const inputElement = document.getElementById(inputId);
+            const content = inputElement.value.trim(); // .trim() 去掉前后的空格
+
+            // 2. 简单检查
+            if (!content) {
+                alert("评论内容不能为空！");
+                return;
+            }
+
+            // 3. 获取 Token
+            const token = localStorage.getItem("token"); // 假设你存 Token 的 key 叫 'token'
+            if (!token) {
+                alert("请先登录再评论！");
+                window.location.href = "login.html"; // 如果没登录，跳去登录页
+                return;
+            }
+
+            try {
+                // 4. 发送请求给后端
+                // 这里的 URL 要改成你真实的后端地址，注意是 /comments/ 还是 /comments/{post_id}，取决于你的 Router 写法
+                // 假设你用的是 schemas 里的 post_id 放在 body 里：
+                const response = await fetch("/comments/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        content: content
+                    })
+                });
+
+                if (response.ok) {
+                    // 成功！
+                    alert("评论成功！🎉");
+                    inputElement.value = ""; // 清空输入框，体验更好
+                } else {
+                    // 失败
+                    const data = await response.json();
+                    alert("发送失败: " + (data.detail || "未知错误"));
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                alert("网络错误，请检查后端是否启动");
+            }
+        }
+
+        // === 8. AI 摘要功能 ===
+        async function getAiSummary(postId, btnElement) {
+            // 1. 找到对应的结果显示框
+            const summaryBox = document.getElementById(`summary-box-${postId}`);
+
+            // 2. 改变 UI 状态（显示加载中）
+            btnElement.disabled = true; // 禁用按钮防止重复点击
+            const originalBtnText = btnElement.innerHTML;
+            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thinking...'; // 按钮转圈圈
+
+            summaryBox.style.display = 'block'; // 显示盒子
+            summaryBox.className = "alert alert-secondary mt-2 small"; // 灰色背景
+            summaryBox.innerText = "Gemini is reading this post...";
+
+            try {
+                const token = localStorage.getItem("token");
+
+                // 3. 发送请求 (注意 URL 要和你后端一致)
+                const response = await fetch(`/ai/summarize/${postId}`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + token // 虽然 AI 可能不需要鉴权，但带上也没坏处
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // 4. 显示成功结果
+                    // 后端返回的 key 可能是 summary 也可能是 ai_summary，这里做了兼容
+                    const summaryText = data.summary || data.ai_summary;
+
+                    summaryBox.className = "alert alert-success mt-2 small"; // 绿色背景
+                    // 加个机器人图标，看起来更高级
+                    summaryBox.innerHTML = `<strong>🤖 AI Summary:</strong><br>${summaryText}`;
+
+                    // 恢复按钮（变成完成状态）
+                    btnElement.innerHTML = '<i class="fas fa-check"></i> Done';
+                } else {
+                    // 处理后端错误 (比如 404 或 500)
+                    summaryBox.className = "alert alert-danger mt-2 small"; // 红色背景
+                    summaryBox.innerText = "Failed to generate summary.";
+                    btnElement.innerHTML = originalBtnText; // 恢复按钮让用户重试
+                    btnElement.disabled = false;
+                }
+
+            } catch (error) {
+                console.error("AI Error:", error);
+                summaryBox.className = "alert alert-danger mt-2 small";
+                summaryBox.innerText = "Network Error. Is backend running?";
+                btnElement.innerHTML = originalBtnText;
+                btnElement.disabled = false;
+            }
+        }
+
+
+        // 页面初始化：加载所有帖子
+        loadPosts();
+    </script>
+
+</body>
+
+</html>

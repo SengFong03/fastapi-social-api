@@ -1,0 +1,16 @@
+# --- 罪魁祸首 (最重要的！) ---
+node_modules
+# 原因：Docker 里面会自己 npm install，千万不要把你本地的 node_modules 拷进去覆盖它！
+
+# --- 构建产物 ---
+dist
+build
+coverage
+
+# --- 敏感信息 ---
+.env
+.git
+
+# --- IDE 配置 ---
+.idea
+.vscode

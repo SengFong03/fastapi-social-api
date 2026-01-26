@@ -1,0 +1,22 @@
+/* src/index.css */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0; /* 去掉浏览器的默认白边 */
+  padding: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f8f9fa; /* 确保背景是浅灰色的 */
+}
+
+/* 👇 这一步最关键！Vite 默认限制了 root 的宽度，把它干掉 */
+#root {
+  max-width: 100%; /* 让它占满全屏 */
+  margin: 0;
+  padding: 0;
+  text-align: left; /* 不要默认居中 */
+}

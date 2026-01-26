@@ -1,0 +1,22 @@
+# --- Python ---
+__pycache__
+*.pyc
+venv/
+.venv/
+env/
+
+# --- Node (前端毒瘤) ---
+node_modules/
+dist/
+build/
+npm-debug.log
+
+# --- 敏感信息 (绝对不能传!) ---
+.env
+.env.local
+
+# --- Docker & IDE ---
+.idea/
+.vscode/
+postgres_data/
+*.log
