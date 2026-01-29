@@ -19,7 +19,7 @@ function CreatePost({ onPostCreated, token }) {
     try {
       // TODO: change owner_id to current logged in user id
       // 发送请求 (owner_id=1 是暂时的作弊写法)
-      const response = await axios.post("http://127.0.0.1:8000/posts/", {
+      const response = await axios.post("https://fastforum-backend.onrender.com/posts/", {
         title: title,
         content: content,
       }, {

@@ -12,7 +12,7 @@ function Register({ onSwitchToLogin }) {
 
     try {
       // 假设你的后端注册接口是 /users/
-      await axios.post("http://127.0.0.1:8000/users/", {
+      await axios.post("https://fastforum-backend.onrender.com/users/", {
         email: email,
         password: password,
       });

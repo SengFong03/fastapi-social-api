@@ -55,7 +55,7 @@ function Post({ post, onDelete, token }) {
     if (!isConfirmed) return;
 
     try {
-      await axios.delete(`http://127.0.0.1:8000/posts/${postData.id}/`, {
+      await axios.delete(`https://fastforum-backend.onrender.com/posts/${postData.id}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Post deleted successfully!");
@@ -74,7 +74,7 @@ function Post({ post, onDelete, token }) {
     }
     try {
       await axios.put(
-        `http://127.0.0.1:8000/posts/${postData.id}/`,
+        `https://fastforum-backend.onrender.com/posts/${postData.id}/`,
         {
           title: editTitle,
           content: editContent,
@@ -107,7 +107,7 @@ function Post({ post, onDelete, token }) {
       // 假设你的点赞 API 是 POST /vote，body 传 { post_id: ..., dir: 1 }
       // 你需要根据你实际后端的 API 文档来修改这里
       await axios.post(
-        "http://127.0.0.1:8000/vote",
+        "https://fastforum-backend.onrender.com/vote",
         { post_id: postData.id, dir: dir },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -140,7 +140,7 @@ function Post({ post, onDelete, token }) {
       // 如果你的 router 有 prefix (比如 /posts)，那可能就是 /posts/summarize/ID
       // 请根据你的 main.py 确认这个 URL
       const response = await axios.post(
-        `http://127.0.0.1:8000/ai/summarize/${postData.id}`,
+        `https://fastforum-backend.onrender.com/ai/summarize/${postData.id}`,
         {}, // body 是空的，因为 post_id 在 URL 里
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -175,7 +175,7 @@ function Post({ post, onDelete, token }) {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/comments/",
+        "https://fastforum-backend.onrender.com/comments/",
         payload,
         config,
       );

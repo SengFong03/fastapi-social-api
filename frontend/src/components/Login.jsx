@@ -20,7 +20,7 @@ function Login({ onLogin, onSwitchToRegister }) {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/login",
+        "https://fastforum-backend.onrender.com/login",
         formData,
       );
       toast.success("Welcome back!");

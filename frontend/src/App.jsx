@@ -40,7 +40,7 @@ function App() {
             }
           : {};
 
-        const response = await axios.get("http://127.0.0.1:8000/posts", config);
+        const response = await axios.get("https://fastforum-backend.onrender.com/posts", config);
         setPosts(response.data);
       } catch (error) {
         console.error("Error", error);
